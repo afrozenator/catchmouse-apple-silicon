@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 APP="build/CatchMouse.app"
 version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")"
 architectures="$(xcrun lipo -archs "$APP/Contents/MacOS/CatchMouse")"
-xcrun lipo -verify_arch arm64 "$APP/Contents/MacOS/CatchMouse"
+xcrun lipo "$APP/Contents/MacOS/CatchMouse" -verify_arch arm64
 codesign --verify --strict "$APP"
 case "$architectures" in
     arm64) kind="arm64" ;;

@@ -30,8 +30,12 @@ done
 
 bundle="${staging}/${APP_NAME}.app"
 mkdir -p "${bundle}/Contents/MacOS" "${bundle}/Contents/Resources"
-xcrun lipo -create "${slices[@]}" -output "${bundle}/Contents/MacOS/${APP_NAME}"
-xcrun lipo -verify_arch "${architectures[@]}" "${bundle}/Contents/MacOS/${APP_NAME}"
+if [ "${#slices[@]}" -eq 1 ]; then
+    cp "${slices[0]}" "${bundle}/Contents/MacOS/${APP_NAME}"
+else
+    xcrun lipo -create "${slices[@]}" -output "${bundle}/Contents/MacOS/${APP_NAME}"
+fi
+xcrun lipo "${bundle}/Contents/MacOS/${APP_NAME}" -verify_arch "${architectures[@]}"
 cp Resources/Info.plist "${bundle}/Contents/Info.plist"
 cp LICENSE "${bundle}/Contents/Resources/LICENSE"
 printf 'APPL????' > "${bundle}/Contents/PkgInfo"
