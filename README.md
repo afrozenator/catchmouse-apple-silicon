@@ -1,121 +1,139 @@
-# CatchMouse
+# CatchMouse for Apple Silicon
 
-Jump the mouse cursor between displays with a global keyboard shortcut.
+Move the pointer to another display with a global keyboard shortcut. A small
+Swift menu-bar app for Apple Silicon Macs running macOS 11 or later; no Rosetta,
+external dependencies, or Accessibility permission needed by the app.
 
-A modern, **Apple-Silicon-native** reimplementation of the classic
-[CatchMouse](https://github.com/round/CatchMouse) utility (v1.2, ftnew.com,
-2011), which shipped only as a 32/64-bit **Intel** binary and runs on Apple
-Silicon Macs solely through Rosetta. This is a clean rewrite in Swift — it
-builds and runs natively on `arm64`, with no original code or assets reused.
-
-## Why
-
-The original `CatchMouse.app` is a `i386` + `x86_64` Mach-O with no published
-source, so it cannot be rebuilt or recompiled for Apple Silicon. This project
-reproduces its behaviour — move the cursor to a chosen display instantly — as a
-small, dependency-free menu-bar agent built with the modern toolchain.
-
-## Features
-
-- 🖥️ **Per-display hotkeys** — `⌃⌘,` / `⌃⌘.` / `⌃⌘/` warp the cursor to the
-  centre of the **left / centre / right** display.
-- 🔁 **Cycle** — `⌃⌥→` / `⌃⌥←` move to the next / previous display, wrapping
-  around.
-- ⚙️ **Customisable** — set your own shortcut for each display (and for cycling)
-  in the **Preferences** window; bindings are saved per monitor and survive
-  reconnects.
-- 🔢 **Identify Displays** — flash a big number on each screen so you know which
-  is which.
-- 🧭 **Menu-bar agent** — lives in the menu bar (no Dock icon); the menu lists
-  every attached display and its size, and updates live as you plug monitors
-  in and out.
-- 🔓 **No Accessibility permission required** — cursor movement uses
-  `CGWarpMouseCursorPosition` rather than synthetic events.
-- ⌨️ **Scriptable** — the same actions are available as CLI verbs, so you can
-  bind them to your own launcher or window manager.
-- 🏎️ **Native** — universal `arm64 + x86_64` binary; no Rosetta on Apple Silicon.
+This is a maintained fork of [zhouyi-xiaoxiao/CatchMouse](https://github.com/zhouyi-xiaoxiao/CatchMouse),
+an MIT-licensed Swift replacement for the original [round/CatchMouse](https://github.com/round/CatchMouse).
+The original repository distributes an Intel-only app without source code, so
+that binary cannot be recompiled for Apple Silicon. No original binary or artwork
+is included here.
 
 ## Install
 
+Download **CatchMouse-2.2.0-arm64.zip** from the
+[latest release](https://github.com/afrozenator/catchmouse-apple-silicon/releases/latest).
+
+1. Quit the old CatchMouse from its menu-bar icon.
+2. Unzip the download and move **CatchMouse.app** into **Applications**, replacing
+   the old copy. Keep the old app elsewhere if you want to be able to revert.
+3. Open CatchMouse. It shows a cursor icon in the menu bar; it has no Dock icon.
+4. Open **Preferences…** to set your shortcuts.
+
+The download is ad-hoc signed, **not Apple Developer ID signed or notarized**.
+If macOS blocks the downloaded app, use **System Settings → Privacy & Security →
+Open Anyway** after attempting to open it. Building from source below is another
+option. Do not disable Gatekeeper globally.
+
+For automatic startup, add this app in **System Settings → General → Login Items**
+and remove the old CatchMouse entry if present.
+
+### Migrating from CatchMouse 1.2
+
+Set your shortcuts again in Preferences; the old app's archived settings are not
+imported. For example, record Command-1 and Command-2 if those were your old
+bindings. Quit the old app first so it releases the shortcuts.
+
+This replacement moves the cursor to the display center, supports custom
+per-monitor shortcuts and cycling, and can identify displays. The old app's
+cursor magnification option is not implemented.
+
 ### Build from source
 
-Requires the Xcode Command Line Tools (`xcode-select --install`). A full Xcode
-install is **not** needed.
+Install Apple's Command Line Tools with `xcode-select --install`. Full Xcode is
+not required to build the Apple Silicon version or run its regression tests.
 
 ```sh
-git clone https://github.com/zhouyi-xiaoxiao/CatchMouse.git
-cd CatchMouse
+git clone https://github.com/afrozenator/catchmouse-apple-silicon.git
+cd catchmouse-apple-silicon
+./scripts/test.sh
 ./build_app.sh
+open build/CatchMouse.app
 ```
 
-This produces `build/CatchMouse.app`. Move it to `/Applications` and launch it:
+The default build is **arm64 only**. Verify it with:
 
 ```sh
-cp -R build/CatchMouse.app /Applications/
-open /Applications/CatchMouse.app
+file build/CatchMouse.app/Contents/MacOS/CatchMouse
+codesign --verify --strict build/CatchMouse.app
 ```
 
-A cursor icon appears in the menu bar. The app launches as a background agent,
-so there is no Dock icon or window.
+To build a universal arm64 + x86_64 app, use `./build_app.sh universal` with a
+toolchain that includes Intel compatibility libraries. Both architectures must
+compile successfully; the script never silently falls back to Intel-only. Recent
+Apple Silicon-only SDK/toolchain installations may not provide those libraries.
 
-## Usage
+## Shortcuts
 
-### Global hotkeys
-
-| Shortcut | Action |
+| Default shortcut | Action |
 | --- | --- |
-| `⌃⌘,` / `⌃⌘.` / `⌃⌘/` | Jump to the left / centre / right display |
-| `⌃⌥→` | Move to the next display |
-| `⌃⌥←` | Move to the previous display |
+| Control-Command-comma | Jump to display 1 |
+| Control-Command-period | Jump to display 2 |
+| Control-Command-slash | Jump to display 3 |
+| Control-Option-right arrow | Next display, wrapping around |
+| Control-Option-left arrow | Previous display, wrapping around |
 
-Displays are ordered left → right by their position in the global desktop, so
-`⌃⌘,` is the left-most display, `⌃⌘.` the centre and `⌃⌘/` the right. (With more
-than three displays, `,` `.` `/` map to the first three; use `⌃⌥→` / `⌃⌥←` to
-reach the rest.)
+Displays are numbered by desktop position: left to right, then top to bottom.
+**Identify Displays** briefly shows their numbers. Custom bindings follow each
+monitor's UUID across reconnects and reordering; positional defaults follow the
+current arrangement. Set extra bindings in Preferences when using more than
+three displays.
 
-**Customise shortcuts:** open **Preferences…** from the menu-bar icon, click any
-recorder and press the combination you want (⎋ cancels, ⌫ clears). Each
-display's binding is stored per monitor by its UUID, so it sticks even after you
-unplug and replug. **Identify Displays** flashes a number on every screen so you
-can tell them apart.
+Click a shortcut field and press the desired combination. Escape cancels;
+Delete disables that shortcut and keeps it disabled across restarts. **Reset to
+Defaults** restores all defaults. Menu commands still work for disabled shortcuts.
+The menu reports duplicate shortcuts and combinations that macOS or another app
+has already claimed.
 
-### Command line
+## Command line
 
-Running the binary with an argument performs a single action and exits — handy
-for scripting or binding to another tool:
-
-```sh
-CatchMouse --list        # list displays: number, id, size, position
-CatchMouse --move 2      # warp the cursor to the centre of display 2
-CatchMouse --move-next   # warp to the next display
-CatchMouse --move-prev   # warp to the previous display
-```
-
-(The binary inside the bundle is at
-`build/CatchMouse.app/Contents/MacOS/CatchMouse`.)
-
-## Development
+The executable inside the app can perform one action and exit:
 
 ```sh
-swift build            # debug build
-swift run CatchMouse --list
-./build_app.sh         # release .app bundle (universal when possible)
+build/CatchMouse.app/Contents/MacOS/CatchMouse --list
+build/CatchMouse.app/Contents/MacOS/CatchMouse --move 2
+build/CatchMouse.app/Contents/MacOS/CatchMouse --move-next
+build/CatchMouse.app/Contents/MacOS/CatchMouse --move-prev
+build/CatchMouse.app/Contents/MacOS/CatchMouse --preferences
 ```
 
-| File | Role |
+`--help` lists options. Display numbers are one-based. Invalid arguments exit
+with status 2; cursor movement failures exit with status 1.
+
+## Development and release
+
+```sh
+swift build                          # optional SwiftPM debug build
+./scripts/test.sh                    # dependency-free regression suite
+./build_app.sh                       # optimized native app
+swift scripts/smoke_test.swift build/CatchMouse.app/Contents/MacOS/CatchMouse
+./scripts/package_app.sh             # ZIP plus SHA-256 checksum in build/
+```
+
+For a live movement test, append `--move-cursor` to the smoke-test command. It
+moves the pointer to each attached display, checks next/previous wrapping, and
+restores its original position. Avoid moving the physical mouse during that test.
+
+GitHub Actions runs regression tests, builds a universal app on a compatible
+macOS runner, checks CLI behavior, and uploads a ZIP and checksum as build
+artifacts. Release downloads are published separately after validation.
+
+| Source | Purpose |
 | --- | --- |
-| `DisplayManager.swift` | Enumerate displays, compute centres, warp the cursor |
-| `HotKeyCenter.swift`   | Carbon `RegisterEventHotKey` wrapper for global hotkeys |
-| `AppDelegate.swift`    | Wires hotkeys + menu together, reacts to display changes |
-| `StatusMenuController.swift` | The menu-bar status item and its menu |
-| `CLI.swift`            | Scriptable `--list` / `--move*` verbs |
+| `DisplayManager.swift` | Core Graphics display coordinates and cursor movement |
+| `HotKeyCenter.swift` | Carbon global shortcut registration |
+| `HotKeyStore.swift`, `Shortcuts.swift` | Saved per-monitor and cycle shortcuts |
+| `AppDelegate.swift`, `StatusMenuController.swift` | Menu-bar lifecycle and shortcut diagnostics |
+| `PreferencesWindowController.swift` | Shortcut recording and display identification |
+| `CLI.swift` | Scriptable actions |
 
-## Credits
+The fork uses bundle ID `io.github.afrozenator.catchmouse`, keeping its settings
+separate from both the original app and the upstream Swift replacement.
 
-Inspired by the original **CatchMouse** by ftnew.com. This is an independent,
-clean-room reimplementation of the idea — no source, binary, or artwork from
-the original is included.
+## Credits and license
 
-## License
-
-[MIT](LICENSE).
+The Swift implementation was written by **zhouyi-xiaoxiao**. This fork retains
+its history and [MIT license](LICENSE), and adds mandatory arm64 builds, durable
+shortcut disabling, shortcut conflict reporting, input validation, regression
+tests, and release packaging. The original CatchMouse concept is by **ftnew.com**.

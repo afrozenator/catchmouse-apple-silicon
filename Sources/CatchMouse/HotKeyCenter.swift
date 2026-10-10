@@ -36,6 +36,8 @@ final class HotKeyCenter {
     /// combination is already taken by another app.
     @discardableResult
     func register(keyCode: Int, modifiers: Int, handler: @escaping () -> Void) -> Bool {
+        guard eventHandler != nil,
+              KeyCombo(keyCode: keyCode, carbonModifiers: modifiers).isValid else { return false }
         let id = nextID
         var ref: EventHotKeyRef?
         let status = RegisterEventHotKey(UInt32(keyCode), UInt32(modifiers),

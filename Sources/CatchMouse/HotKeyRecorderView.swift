@@ -15,11 +15,16 @@ func carbonModifiers(from flags: NSEvent.ModifierFlags) -> Int {
 /// combination you want, and it reports the captured `KeyCombo`. Press ⎋ to
 /// cancel or ⌫ to clear the binding.
 final class HotKeyRecorderView: NSView {
-    var combo: KeyCombo? { didSet { needsDisplay = true } }
+    var combo: KeyCombo? { didSet { updateAppearance() } }
     /// Called with the new combo, or `nil` when the user clears it.
     var onChange: ((KeyCombo?) -> Void)?
 
-    private var recording = false { didSet { needsDisplay = true } }
+    private var recording = false { didSet { updateAppearance() } }
+
+    private func updateAppearance() {
+        needsDisplay = true
+        setAccessibilityValue(recording ? "Press a shortcut; Escape cancels" : (combo?.displayString ?? "Disabled"))
+    }
 
     override var acceptsFirstResponder: Bool { true }
     override var intrinsicContentSize: NSSize { NSSize(width: 150, height: 24) }
@@ -53,16 +58,26 @@ final class HotKeyRecorderView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
+        beginRecording()
+    }
+
+    private func beginRecording() {
         guard !recording else { return }
-        window?.makeFirstResponder(self)
-        recording = true
+        if window?.makeFirstResponder(self) == true { recording = true }
+    }
+
+    override func accessibilityPerformPress() -> Bool {
+        beginRecording()
+        return recording
     }
 
     override func becomeFirstResponder() -> Bool { needsDisplay = true; return true }
     override func resignFirstResponder() -> Bool { recording = false; return true }
 
     override func keyDown(with event: NSEvent) {
-        if recording { handle(event) } else { super.keyDown(with: event) }
+        if recording { handle(event) }
+        else if event.keyCode == kVK_Space || event.keyCode == kVK_Return { beginRecording() }
+        else { super.keyDown(with: event) }
     }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {

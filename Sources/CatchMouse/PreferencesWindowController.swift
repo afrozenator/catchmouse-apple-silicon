@@ -58,8 +58,12 @@ final class PreferencesWindowController: NSObject, NSWindowDelegate {
         return h
     }
 
-    private func recorder(_ combo: KeyCombo?, _ onChange: @escaping (KeyCombo?) -> Void) -> HotKeyRecorderView {
+    private func recorder(_ combo: KeyCombo?, label: String, _ onChange: @escaping (KeyCombo?) -> Void) -> HotKeyRecorderView {
         let r = HotKeyRecorderView()
+        r.setAccessibilityElement(true)
+        r.setAccessibilityRole(.button)
+        r.setAccessibilityLabel(label)
+        r.setAccessibilityHelp("Press to record a shortcut. Escape cancels; Delete disables it.")
         r.combo = combo
         r.onChange = onChange
         r.translatesAutoresizingMaskIntoConstraints = false
@@ -88,7 +92,7 @@ final class PreferencesWindowController: NSObject, NSWindowDelegate {
             let key = displays.stableKey(for: id)
             let b = CGDisplayBounds(id)
             let main = (id == CGMainDisplayID()) ? " · main" : ""
-            let r = recorder(Shortcuts.jumpCombo(index: index, displayKey: key, store: store)) { [weak self] combo in
+            let r = recorder(Shortcuts.jumpCombo(index: index, displayKey: key, store: store), label: "Display \(index + 1) shortcut") { [weak self] combo in
                 self?.store.setBinding(combo, forDisplay: key)
                 self?.onChanged()
             }
@@ -102,9 +106,9 @@ final class PreferencesWindowController: NSObject, NSWindowDelegate {
         stack.addArrangedSubview(sep)
 
         stack.addArrangedSubview(sectionTitle("Cycle displays"))
-        let nextRec = recorder(Shortcuts.nextCombo(store)) { [weak self] c in self?.store.setNext(c); self?.onChanged() }
+        let nextRec = recorder(Shortcuts.nextCombo(store), label: "Next display shortcut") { [weak self] c in self?.store.setNext(c); self?.onChanged() }
         stack.addArrangedSubview(row("Next display", nextRec))
-        let prevRec = recorder(Shortcuts.prevCombo(store)) { [weak self] c in self?.store.setPrev(c); self?.onChanged() }
+        let prevRec = recorder(Shortcuts.prevCombo(store), label: "Previous display shortcut") { [weak self] c in self?.store.setPrev(c); self?.onChanged() }
         stack.addArrangedSubview(row("Previous display", prevRec))
 
         let identify = NSButton(title: "Identify Displays", target: self, action: #selector(identify))

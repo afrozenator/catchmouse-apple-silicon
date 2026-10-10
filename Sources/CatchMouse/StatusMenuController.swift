@@ -12,6 +12,7 @@ enum MenuAction {
 /// Owns the menu-bar status item and rebuilds its menu to reflect the displays
 /// currently attached and the user's stored shortcuts.
 final class StatusMenuController: NSObject {
+    var shortcutWarnings: [String] = []
     private let statusItem: NSStatusItem
     private let displays: DisplayManager
     private let store: HotKeyStore
@@ -60,8 +61,16 @@ final class StatusMenuController: NSObject {
         }
 
         menu.addItem(.separator())
-        menu.addItem(action("Move to Next Display   \(Shortcuts.nextCombo(store).displayString)", #selector(moveNext)))
-        menu.addItem(action("Move to Previous Display   \(Shortcuts.prevCombo(store).displayString)", #selector(movePrev)))
+        let next = Shortcuts.nextCombo(store).map { "   \($0.displayString)" } ?? ""
+        let previous = Shortcuts.prevCombo(store).map { "   \($0.displayString)" } ?? ""
+        menu.addItem(action("Move to Next Display\(next)", #selector(moveNext)))
+        menu.addItem(action("Move to Previous Display\(previous)", #selector(movePrev)))
+
+        if !shortcutWarnings.isEmpty {
+            menu.addItem(.separator())
+            for warning in shortcutWarnings { menu.addItem(disabled(warning)) }
+            menu.addItem(disabled("Change unavailable shortcuts in Preferences."))
+        }
 
         menu.addItem(.separator())
         menu.addItem(action("Identify Displays", #selector(identify)))

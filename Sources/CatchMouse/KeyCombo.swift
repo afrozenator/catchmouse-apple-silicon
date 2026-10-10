@@ -5,9 +5,16 @@ import Foundation
 ///
 /// `NSEvent.keyCode` is the same virtual key code Carbon uses, so a combo
 /// captured from the recorder can be handed straight to `RegisterEventHotKey`.
-struct KeyCombo: Codable, Equatable {
+struct KeyCombo: Codable, Equatable, Hashable {
     var keyCode: Int
     var carbonModifiers: Int
+
+    var isValid: Bool {
+        let allowed = cmdKey | controlKey | optionKey | shiftKey
+        return (0...127).contains(keyCode)
+            && carbonModifiers & ~allowed == 0
+            && carbonModifiers & (cmdKey | controlKey | optionKey) != 0
+    }
 
     /// Human-readable form, e.g. "⌃⌘," or "⌃⌥→".
     var displayString: String {

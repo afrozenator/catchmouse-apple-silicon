@@ -20,10 +20,15 @@ enum Shortcuts {
     /// per-display binding if any, otherwise the positional default (first three
     /// displays only). Returns `nil` if the display has no shortcut.
     static func jumpCombo(index: Int, displayKey: String, store: HotKeyStore) -> KeyCombo? {
+        if store.isDisplayDisabled(displayKey) { return nil }
         if let stored = store.binding(forDisplay: displayKey) { return stored }
-        return index < defaultJump.count ? defaultJump[index] : nil
+        return defaultJump.indices.contains(index) ? defaultJump[index] : nil
     }
 
-    static func nextCombo(_ store: HotKeyStore) -> KeyCombo { store.nextBinding() ?? defaultNext }
-    static func prevCombo(_ store: HotKeyStore) -> KeyCombo { store.prevBinding() ?? defaultPrev }
+    static func nextCombo(_ store: HotKeyStore) -> KeyCombo? {
+        store.isNextDisabled ? nil : (store.nextBinding() ?? defaultNext)
+    }
+    static func prevCombo(_ store: HotKeyStore) -> KeyCombo? {
+        store.isPrevDisabled ? nil : (store.prevBinding() ?? defaultPrev)
+    }
 }

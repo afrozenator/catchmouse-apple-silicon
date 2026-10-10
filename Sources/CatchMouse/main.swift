@@ -5,11 +5,10 @@ import AppKit
 //   any other argument(s)    → run a scriptable CLI verb and exit
 //   no arguments             → launch the menu-bar agent
 let extraArgs = Array(CommandLine.arguments.dropFirst())
-let openPreferences = extraArgs.contains("--preferences") || extraArgs.contains("--prefs")
-let cliArgs = extraArgs.filter { $0 != "--preferences" && $0 != "--prefs" }
+let openPreferences = extraArgs == ["--preferences"] || extraArgs == ["--prefs"]
 
-if !openPreferences, !cliArgs.isEmpty {
-    exit(runCLI(arguments: cliArgs))
+if !openPreferences, !extraArgs.isEmpty {
+    exit(runCLI(arguments: extraArgs))
 }
 
 let app = NSApplication.shared

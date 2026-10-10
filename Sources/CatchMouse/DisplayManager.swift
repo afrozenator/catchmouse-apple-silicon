@@ -31,11 +31,13 @@ final class DisplayManager {
     }
 
     /// Warp the cursor to the centre of the given display.
-    func moveCursor(to id: CGDirectDisplayID) {
-        CGWarpMouseCursorPosition(center(of: id))
+    @discardableResult
+    func moveCursor(to id: CGDirectDisplayID) -> CGError {
+        let result = CGWarpMouseCursorPosition(center(of: id))
         // Re-associate so the next physical mouse movement continues smoothly
         // from the warped position rather than snapping back. (boolean_t == Int32)
-        CGAssociateMouseAndMouseCursorPosition(1)
+        if result == .success { CGAssociateMouseAndMouseCursorPosition(1) }
+        return result
     }
 
     /// The display currently containing the cursor (falls back to the main display).
@@ -46,16 +48,17 @@ final class DisplayManager {
     }
 
     /// Move the cursor to the next (or previous) display, wrapping around.
-    func moveToAdjacentDisplay(forward: Bool) {
+    @discardableResult
+    func moveToAdjacentDisplay(forward: Bool) -> CGError {
         let ids = orderedDisplays()
         guard ids.count > 1 else {
-            if let only = ids.first { moveCursor(to: only) }
-            return
+            if let only = ids.first { return moveCursor(to: only) }
+            return .failure
         }
         let index = ids.firstIndex(of: currentDisplay()) ?? 0
         let step = forward ? 1 : -1
         let next = ((index + step) % ids.count + ids.count) % ids.count
-        moveCursor(to: ids[next])
+        return moveCursor(to: ids[next])
     }
 
     // MARK: - Stable identity (survives reconnect / reordering)

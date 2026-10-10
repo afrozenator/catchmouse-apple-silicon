@@ -1,0 +1,27 @@
+name: Build and test
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test shortcut persistence and CLI validation
+        run: ./scripts/test.sh
+      - name: Build universal app with mandatory Apple Silicon support
+        run: ./build_app.sh universal
+      - name: Smoke test release executable
+        run: swift scripts/smoke_test.swift build/CatchMouse.app/Contents/MacOS/CatchMouse
+      - name: Package app and checksum
+        run: ./scripts/package_app.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CatchMouse-universal
+          path: |
+            build/*.zip
+            build/*.sha256

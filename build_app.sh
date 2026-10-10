@@ -1,46 +1,46 @@
 #!/usr/bin/env bash
-#
-# Build CatchMouse.app as an Apple-Silicon-native bundle.
-#
-# Compiles an `arm64` and an `x86_64` slice with swiftc and lipos them into a
-# universal binary, then assembles and ad-hoc-signs the .app. Requires only the
-# Xcode Command Line Tools (swiftc, lipo, codesign) — no full Xcode install. If
-# the x86_64 slice can't be built, it ships arm64-only (still Apple Silicon native).
-#
+# Build a native app with Command Line Tools; arm64 must always succeed.
 set -euo pipefail
 cd "$(dirname "$0")"
 
 APP_NAME="CatchMouse"
 APP_DIR="build/${APP_NAME}.app"
-MIN_MACOS="11"
 SDK="$(xcrun --sdk macosx --show-sdk-path)"
 SRCS=(Sources/"${APP_NAME}"/*.swift)
 FRAMEWORKS=(-framework AppKit -framework Carbon -framework CoreGraphics -framework ColorSync)
 
-mkdir -p build/arch
+architectures=(arm64)
+case "${1:-arm64}" in
+    arm64) ;;
+    universal) architectures+=(x86_64) ;;
+    *) echo "usage: $0 [arm64|universal]" >&2; exit 2 ;;
+esac
+if [ "$#" -gt 1 ]; then echo "usage: $0 [arm64|universal]" >&2; exit 2; fi
+
+mkdir -p build
+staging="$(mktemp -d build/.catchmouse.XXXXXX)"
+trap 'rm -rf "$staging"' EXIT
 slices=()
-for arch in arm64 x86_64; do
-    echo "› Compiling ${arch} slice …"
-    if swiftc -O -sdk "$SDK" -target "${arch}-apple-macos${MIN_MACOS}" \
-        "${FRAMEWORKS[@]}" "${SRCS[@]}" -o "build/arch/${APP_NAME}-${arch}" 2>/dev/null; then
-        slices+=("build/arch/${APP_NAME}-${arch}")
-    else
-        echo "  ${arch} slice unavailable — skipping"
-    fi
+for arch in "${architectures[@]}"; do
+    echo "Compiling ${arch}…"
+    xcrun swiftc -O -sdk "$SDK" -target "${arch}-apple-macos11.0" \
+        "${FRAMEWORKS[@]}" "${SRCS[@]}" -o "${staging}/${APP_NAME}-${arch}"
+    slices+=("${staging}/${APP_NAME}-${arch}")
 done
-[ ${#slices[@]} -gt 0 ] || { echo "error: no architectures built"; exit 1; }
 
-echo "› Assembling ${APP_DIR}"
+bundle="${staging}/${APP_NAME}.app"
+mkdir -p "${bundle}/Contents/MacOS" "${bundle}/Contents/Resources"
+xcrun lipo -create "${slices[@]}" -output "${bundle}/Contents/MacOS/${APP_NAME}"
+xcrun lipo -verify_arch "${architectures[@]}" "${bundle}/Contents/MacOS/${APP_NAME}"
+cp Resources/Info.plist "${bundle}/Contents/Info.plist"
+cp LICENSE "${bundle}/Contents/Resources/LICENSE"
+printf 'APPL????' > "${bundle}/Contents/PkgInfo"
+if [ -f Resources/icon.icns ]; then cp Resources/icon.icns "${bundle}/Contents/Resources/icon.icns"; fi
+plutil -lint "${bundle}/Contents/Info.plist"
+codesign --force --sign - "$bundle"
+codesign --verify --strict "$bundle"
+
+# Replace an earlier build only after compilation and verification succeed.
 rm -rf "$APP_DIR"
-mkdir -p "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Resources"
-lipo -create "${slices[@]}" -o "${APP_DIR}/Contents/MacOS/${APP_NAME}"
-cp Resources/Info.plist "${APP_DIR}/Contents/Info.plist"
-printf 'APPL????' > "${APP_DIR}/Contents/PkgInfo"
-[ -f Resources/icon.icns ] && cp Resources/icon.icns "${APP_DIR}/Contents/Resources/icon.icns"
-
-echo "› Ad-hoc code signing"
-codesign --force --sign - "${APP_DIR}" >/dev/null
-
-rm -rf build/arch
-echo "› Done — architectures: $(lipo -archs "${APP_DIR}/Contents/MacOS/${APP_NAME}")"
-echo "   ${APP_DIR}"
+mv "$bundle" "$APP_DIR"
+echo "Built ${APP_DIR}: $(xcrun lipo -archs "${APP_DIR}/Contents/MacOS/${APP_NAME}")"

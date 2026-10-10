@@ -34,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Re-register hotkeys and rebuild the menu to match the current displays
     /// and the user's stored shortcuts.
     private func reload() {
-        registerHotKeys()
+        menu.shortcutWarnings = registerHotKeys()
         menu.rebuild()
     }
 
@@ -54,27 +54,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func registerHotKeys() {
+    private func registerHotKeys() -> [String] {
         hotKeys.unregisterAll()
+        var warnings: [String] = []
+        var used = Set<KeyCombo>()
+
+        func register(_ combo: KeyCombo, action: String, handler: @escaping () -> Void) {
+            guard used.insert(combo).inserted else {
+                warnings.append("\(action): \(combo.displayString) already assigned")
+                return
+            }
+            if !hotKeys.register(keyCode: combo.keyCode, modifiers: combo.carbonModifiers, handler: handler) {
+                warnings.append("\(action): \(combo.displayString) unavailable")
+            }
+        }
 
         // Per-display jump keys (user binding, or positional default).
         for (index, id) in displays.orderedDisplays().enumerated() {
             let key = displays.stableKey(for: id)
             guard let combo = Shortcuts.jumpCombo(index: index, displayKey: key, store: store) else { continue }
-            hotKeys.register(keyCode: combo.keyCode, modifiers: combo.carbonModifiers) { [weak self] in
+            register(combo, action: "Display \(index + 1)") { [weak self] in
                 guard let self, let target = self.displays.display(forStableKey: key) else { return }
                 self.displays.moveCursor(to: target)
             }
         }
 
         // Cycle keys.
-        let next = Shortcuts.nextCombo(store)
-        hotKeys.register(keyCode: next.keyCode, modifiers: next.carbonModifiers) { [weak self] in
-            self?.displays.moveToAdjacentDisplay(forward: true)
+        if let next = Shortcuts.nextCombo(store) {
+            register(next, action: "Next display") { [weak self] in
+                self?.displays.moveToAdjacentDisplay(forward: true)
+            }
         }
-        let prev = Shortcuts.prevCombo(store)
-        hotKeys.register(keyCode: prev.keyCode, modifiers: prev.carbonModifiers) { [weak self] in
-            self?.displays.moveToAdjacentDisplay(forward: false)
+        if let prev = Shortcuts.prevCombo(store) {
+            register(prev, action: "Previous display") { [weak self] in
+                self?.displays.moveToAdjacentDisplay(forward: false)
+            }
         }
+        return warnings
     }
 }

@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.2.0
+
+- Build arm64 by default; require every requested architecture to compile and
+  show compiler errors. Verify architecture and signature before replacing an
+  existing build.
+- Keep cleared display and cycle shortcuts disabled across restarts; Reset to
+  Defaults explicitly restores them.
+- Report duplicate/unavailable shortcuts in the menu and reject malformed saved
+  key combinations without crashing.
+- Reject missing and extra CLI arguments and report cursor movement failures.
+- Give shortcut recorders accessible labels, values, and keyboard activation.
+- Use the afrozenator bundle identifier and document migration from the original.
+- Add dependency-free regression tests, release smoke tests, GitHub Actions,
+  ZIP packaging, and SHA-256 checksums. Include the MIT license in the app bundle.
+
 ## 2.1.0
 
 ### Added

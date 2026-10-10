@@ -9,13 +9,13 @@
     <key>CFBundleExecutable</key>
     <string>CatchMouse</string>
     <key>CFBundleIdentifier</key>
-    <string>io.github.zhouyi-xiaoxiao.catchmouse</string>
+    <string>io.github.afrozenator.catchmouse</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>2.1.0</string>
+    <string>2.2.0</string>
     <key>CFBundleVersion</key>
-    <string>4</string>
+    <string>5</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>LSMinimumSystemVersion</key>
